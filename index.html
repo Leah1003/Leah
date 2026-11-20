@@ -1,10 +1,13 @@
-<!-- aru-author:v1:5LyR5pav -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Space</title>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+<link rel="icon" href="apple-touch-icon.png?v=2">
+<meta name="apple-mobile-web-app-title" content="Leah">
+
 <style>
 :root{--paper:#f8f7f4;--ink:#252522;--muted:#898780;--line:#e6e4de;--soft:#efede8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#1c1c1a;--ink:#e9e7e1;--muted:#97948b;--line:#2f2e2b;--soft:#262522;color-scheme:dark}}
@@ -94,61 +97,9 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
 (function(){
   var $=function(i){return document.getElementById(i)};
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
-  var PR=(typeof window!=='undefined'?window.PolarisRoom:null), MEM={}, storeOK=false, prOK=false, pq=null;
-  var KEYS=['settings','thoughts','journal','reading','collection','photos','session','tab'];
-  function lsGet(k){return (k in MEM)?MEM[k]:null}
-  function lsSet(k,v){
-    MEM[k]=v;
-    if(prOK&&PR&&typeof PR.patchState==='function'){
-      var o={};o[k]=v;
-      pq=pq?pq.then(function(){return PR.patchState(o)}).catch(function(){}):Promise.resolve(PR.patchState(o)).catch(function(){});
-      return true
-    }
-    try{localStorage.setItem('ms:'+k,JSON.stringify(v));storeOK=true;return true}catch(e){return false}
-  }
-  async function initStore(){
-    if(PR&&typeof PR.whenReady==='function'){try{await PR.whenReady()}catch(e){}}
-    if(PR&&typeof PR.getState==='function'){
-      try{
-        var s=await PR.getState();
-        if(s&&typeof s==='object'){Object.keys(s).forEach(function(k){MEM[k]=s[k]})}
-        prOK=true
-      }catch(e){prOK=false}
-    }
-    if(prOK)return;
-    KEYS.forEach(function(k){
-      try{var v=localStorage.getItem('ms:'+k);if(v!=null){MEM[k]=JSON.parse(v);storeOK=true}}catch(e){}
-    })
-    try{
-      var sd=document.getElementById('seed');
-      if(sd&&sd.textContent){var j=JSON.parse(sd.textContent);Object.keys(j).forEach(function(k){if(!(k in MEM))MEM[k]=j[k]})}
-    }catch(e){}
-  }
-  function exportFile(){
-    try{
-      var cl=document.documentElement.cloneNode(true);
-      var old=cl.querySelector('#seed');if(old&&old.parentNode)old.parentNode.removeChild(old);
-      var sd=document.createElement('script');sd.id='seed';sd.type='application/json';
-      sd.textContent=JSON.stringify(MEM);
-      var head=cl.querySelector('head');
-      if(head)head.appendChild(sd);else cl.insertBefore(sd,cl.firstChild);
-      var html='<!DOCTYPE html>\n'+cl.outerHTML;
-      var blob=new Blob([html],{type:'text/html'});
-      var name='my-space.html';
-      function dl(){
-        try{
-          var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
-          setTimeout(function(){URL.revokeObjectURL(a.href);if(a.parentNode)a.parentNode.removeChild(a)},1500);
-        }catch(e){}
-      }
-      if(PR&&typeof PR.saveFile==='function'){
-        PR.saveFile(blob,name).then(function(r){if(!r||r.status!=='saved')dl()}).catch(dl);
-        return
-      }
-      dl();
-    }catch(e){}
-  }
-  var settings=null, built=false;
+  function lsGet(k){try{return JSON.parse(localStorage.getItem('ms:'+k))}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem('ms:'+k,JSON.stringify(v));return true}catch(e){return false}}
+  var settings=lsGet('settings'), built=false;
 
   var SEC=[
     {k:'thoughts',t:'Thoughts',n:'存放那些突然出现的灵感和思考。',f:[{k:'text',p:'此刻在想什么……',a:1}]},
@@ -189,10 +140,9 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     };
   }
   function enter(){
-    lsSet('session',{in:true,ts:Date.now()});
+    try{sessionStorage.setItem('ms:in','1')}catch(e){}
     $('boot').hidden=true;$('gate').hidden=true;$('app').hidden=false;
     applyName();
-    if(!storeOK&&!prOK){var f=document.querySelector('footer');if(f)f.textContent='⚠️ 这个环境不能长期保存：记录只在这页开着时有效。'}
     if(!built){built=true;buildApp()}
   }
   function applyName(){
@@ -206,7 +156,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   var tabs={};
   function show(k){
     Object.keys(tabs).forEach(function(x){var on=x===k;tabs[x].sec.hidden=!on;tabs[x].btn.className=on?'on':''});
-    lsSet('tab',k);
+    try{sessionStorage.setItem('ms:tab',k)}catch(e){}
   }
   function addTab(k,label,sec){
     var b=el('button','',label);b.onclick=function(){show(k)};
@@ -215,11 +165,9 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   function buildApp(){
     SEC.forEach(function(s){addTab(s.k,s.t,buildSection(s))});
     addTab('about','About',buildAbout());
-    var ex=el('button','','导出');ex.onclick=exportFile;
-    $('nav').appendChild(ex);
-    var lk=el('button','','Lock');lk.onclick=function(){lsSet('session',null);showGate(false)};
+    var lk=el('button','','Lock');lk.onclick=function(){try{sessionStorage.removeItem('ms:in')}catch(e){}showGate(false)};
     $('nav').appendChild(lk);
-    var t='thoughts';var svTab=lsGet('tab');if(svTab)t=svTab;
+    var t='thoughts';try{t=sessionStorage.getItem('ms:tab')||t}catch(e){}
     show(tabs[t]?t:'thoughts');
   }
 
@@ -290,8 +238,6 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     var row=el('div','row'),st=el('span'),sv=el('button','btn','保存');
     row.appendChild(st);row.appendChild(sv);
     [ab,nm,pw,row].forEach(function(x){sec.appendChild(x)});
-    var exb=el('button','btn','导出为文件');exb.style.marginTop='6px';exb.onclick=exportFile;sec.appendChild(exb);
-    sec.appendChild(el('p','note','导出后可以在电脑或手机的浏览器里打开，但那是另一本账，两边不会同步。'));
     sv.onclick=async function(){
       var n=nm.value.trim();if(!n){st.textContent='名字不能为空';return}
       if(pw.value&&pw.value.length<4){st.textContent='新密码至少 4 位';return}
@@ -303,14 +249,11 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   }
 
   // ---------- boot ----------
-  (async function(){
-    try{await initStore()}catch(e){}
-    settings=lsGet('settings');
-    try{
-      if(!settings||!settings.pw){showGate(true)}
-      else{var sess=lsGet('session');if(sess&&sess.in)enter();else showGate(false)}
-    }catch(e){$('boot').textContent='出错了，请刷新'}
-  })();
+  try{
+    if(!settings||!settings.pw){showGate(true)}
+    else{var open=false;try{open=sessionStorage.getItem('ms:in')==='1'}catch(e){}
+      if(open)enter();else showGate(false)}
+  }catch(e){$('boot').textContent='出错了，请刷新'}
 })();
 </script>
 </body>
