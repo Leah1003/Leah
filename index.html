@@ -49,6 +49,7 @@ textarea:focus,.in:focus{border-color:var(--muted)}
 .item .d{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;letter-spacing:.5px}
 .item .d button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;opacity:.7}
 .item .d button:hover{opacity:1;color:var(--ink)}
+.acts{display:flex;gap:16px}
 .item .ti{margin:6px 0 0;font-size:15px;font-weight:500}
 .item .c{margin:4px 0 0;font-size:14.5px;white-space:pre-wrap;word-break:break-word}
 .item .fr{margin:2px 0 0;font-size:12px;color:var(--muted)}
@@ -180,6 +181,23 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
       im.onerror=rej;im.src=r.result};
     r.onerror=rej;r.readAsDataURL(file)})}
 
+  async function share(o,btn){
+    var txt=[o.title,o.text,o.from?'— '+o.from:''].filter(Boolean).join('\n');
+    function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='分享'},1500)}
+    try{
+      var data={};if(txt)data.text=txt;
+      if(o.img&&navigator.canShare){
+        var bl=await (await fetch(o.img)).blob(),f=new File([bl],'photo.jpg',{type:'image/jpeg'});
+        if(navigator.canShare({files:[f]}))data.files=[f];
+      }
+      if(navigator.share){await navigator.share(data);return}
+      await navigator.clipboard.writeText(txt);flash('已复制');
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+      try{await navigator.clipboard.writeText(txt);flash('已复制')}catch(x){flash('无法分享')}
+    }
+  }
+
   function buildSection(s){
     var sec=el('section');sec.id='s_'+s.k;
     sec.appendChild(el('h2','',s.t));sec.appendChild(el('p','note',s.n));
@@ -202,7 +220,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
           if(b.dataset.s==='1'){lsSet(s.k,(lsGet(s.k)||[]).filter(function(x){return x.id!==o.id}));render()}
           else{b.dataset.s='1';b.textContent='确认删除？';setTimeout(function(){b.dataset.s='';b.textContent='删除'},2500)}
         };
-        d.appendChild(b);it.appendChild(d);
+        var acts=el('span','acts'),sh=el('button','','分享');sh.onclick=function(){share(o,sh)};acts.appendChild(sh);acts.appendChild(b);d.appendChild(acts);it.appendChild(d);
         if(o.title)it.appendChild(el('p','ti',o.title));
         if(o.text){var c=el('p','c');
           if(/^https?:\/\/\S+$/.test(o.text)){var a=el('a','',o.text);a.href=o.text;a.target='_blank';a.rel='noopener';c.appendChild(a)}else c.textContent=o.text;
