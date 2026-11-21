@@ -50,6 +50,11 @@ textarea:focus,.in:focus{border-color:var(--muted)}
 .item .d button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;opacity:.7}
 .item .d button:hover{opacity:1;color:var(--ink)}
 .acts{display:flex;gap:16px}
+.mh{margin:28px 0 2px;font-size:12px;letter-spacing:2px;color:var(--muted)}
+#otd{margin-top:28px;padding:16px 18px 10px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
+.otdi{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 0 8px;margin-top:10px;cursor:pointer}
+.otdy{display:block;font-size:11px;color:var(--muted);letter-spacing:.5px}
+.otdt{display:block;font-size:14px;color:var(--ink)}
 .item .ti{margin:6px 0 0;font-size:15px;font-weight:500}
 .item .c{margin:4px 0 0;font-size:14.5px;white-space:pre-wrap;word-break:break-word}
 .item .fr{margin:2px 0 0;font-size:12px;color:var(--muted)}
@@ -88,6 +93,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
       <div class="eyebrow">WELCOME TO MY SPACE</div>
       <h1 class="hi" id="hi">Hi.</h1>
       <p class="sub">一个只属于自己的小小角落。</p>
+      <div id="otd" hidden></div>
     </div>
     <div id="secs"></div>
   </main>
@@ -145,6 +151,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     $('boot').hidden=true;$('gate').hidden=true;$('app').hidden=false;
     applyName();
     if(!built){built=true;buildApp()}
+    renderOtd();
   }
   function applyName(){
     var n=settings.name;
@@ -162,6 +169,26 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   function addTab(k,label,sec){
     var b=el('button','',label);b.onclick=function(){show(k)};
     $('nav').appendChild(b);$('secs').appendChild(sec);tabs[k]={btn:b,sec:sec};
+  }
+  function renderOtd(){
+    var box=$('otd'),now=new Date(),y=now.getFullYear(),m=now.getMonth(),dd=now.getDate(),hits=[];
+    SEC.forEach(function(s){(lsGet(s.k)||[]).forEach(function(o){
+      var t=new Date(o.ts);
+      if(t.getMonth()===m&&t.getDate()===dd&&t.getFullYear()<y)hits.push({s:s,o:o,y:t.getFullYear()});
+    })});
+    box.textContent='';
+    if(!hits.length){box.hidden=true;return}
+    hits.sort(function(a,b){return b.y-a.y});
+    box.appendChild(el('div','eyebrow','ON THIS DAY · 那年今天'));
+    hits.slice(0,5).forEach(function(h){
+      var r=el('button','otdi');
+      r.appendChild(el('span','otdy',(y-h.y)+' 年前 · '+h.s.t));
+      var tx=[h.o.title,h.o.text].filter(Boolean).join(' · ')||'［照片］';
+      r.appendChild(el('span','otdt',tx.length>70?tx.slice(0,70)+'…':tx));
+      r.onclick=function(){show(h.s.k)};
+      box.appendChild(r);
+    });
+    box.hidden=false;
   }
   function buildApp(){
     SEC.forEach(function(s){addTab(s.k,s.t,buildSection(s))});
@@ -181,6 +208,13 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
       im.onerror=rej;im.src=r.result};
     r.onerror=rej;r.readAsDataURL(file)})}
 
+  function itemText(o){return [o.title,o.text,o.from?'— '+o.from:''].filter(Boolean).join('\n')}
+  async function copyIt(o,btn){
+    var t=itemText(o);
+    function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='复制'},1500)}
+    try{await navigator.clipboard.writeText(t);flash('已复制')}
+    catch(e){try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);flash('已复制')}catch(x){flash('复制失败')}}
+  }
   async function share(o,btn){
     var txt=[o.title,o.text,o.from?'— '+o.from:''].filter(Boolean).join('\n');
     function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='分享'},1500)}
@@ -210,9 +244,12 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     var list=el('div');sec.appendChild(list);
 
     function render(){
-      var arr=lsGet(s.k)||[];list.textContent='';
+      var arr=(lsGet(s.k)||[]).sort(function(x,y){return y.ts-x.ts});list.textContent='';
       if(!arr.length){list.appendChild(el('div','empty','还没有记录。'));return}
+      var lastM='';
       arr.forEach(function(o){
+        var dt=new Date(o.ts),mk=dt.getFullYear()+' 年 '+(dt.getMonth()+1)+' 月';
+        if(mk!==lastM){lastM=mk;list.appendChild(el('div','mh',mk))}
         var it=el('div','item'),d=el('div','d');
         d.appendChild(el('span','',fmt(o.ts,!s.date)));
         var b=el('button','','删除');
@@ -220,7 +257,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
           if(b.dataset.s==='1'){lsSet(s.k,(lsGet(s.k)||[]).filter(function(x){return x.id!==o.id}));render()}
           else{b.dataset.s='1';b.textContent='确认删除？';setTimeout(function(){b.dataset.s='';b.textContent='删除'},2500)}
         };
-        var acts=el('span','acts'),sh=el('button','','分享');sh.onclick=function(){share(o,sh)};acts.appendChild(sh);acts.appendChild(b);d.appendChild(acts);it.appendChild(d);
+        var acts=el('span','acts'),sh=el('button','','分享');sh.onclick=function(){share(o,sh)};if(itemText(o)){var cp=el('button','','复制');cp.onclick=function(){copyIt(o,cp)};acts.appendChild(cp)}acts.appendChild(sh);acts.appendChild(b);d.appendChild(acts);it.appendChild(d);
         if(o.title)it.appendChild(el('p','ti',o.title));
         if(o.text){var c=el('p','c');
           if(/^https?:\/\/\S+$/.test(o.text)){var a=el('a','',o.text);a.href=o.text;a.target='_blank';a.rel='noopener';c.appendChild(a)}else c.textContent=o.text;
