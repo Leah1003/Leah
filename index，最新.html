@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Space</title>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+<link rel="icon" href="apple-touch-icon.png?v=2">
+<meta name="apple-mobile-web-app-title" content="Leah">
+
+<style>
+:root{--paper:#f8f7f4;--ink:#252522;--muted:#898780;--line:#e6e4de;--soft:#efede8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#1c1c1a;--ink:#e9e7e1;--muted:#97948b;--line:#2f2e2b;--soft:#262522;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#1c1c1a;--ink:#e9e7e1;--muted:#97948b;--line:#2f2e2b;--soft:#262522;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,textarea{font:inherit;color:inherit}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{width:min(100%,340px);text-align:center}
+.eyebrow{color:var(--muted);letter-spacing:3px;font-size:11px}
+.box h1{margin:14px 0 8px;font-size:40px;font-weight:400;letter-spacing:-2px;line-height:1.2}
+.box p{margin:0 0 26px;color:var(--muted);font-size:14px}
+.pw{width:100%;padding:11px 2px;margin-bottom:12px;background:none;border:0;border-bottom:1px solid var(--line);outline:0;text-align:center;font-size:15px;border-radius:0}
+.pw:focus{border-bottom-color:var(--ink)}
+.btn{background:none;border:1px solid var(--line);padding:8px 26px;border-radius:99px;font-size:13px;letter-spacing:2px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.err{color:#b5523f;font-size:12px;min-height:20px;margin-top:10px}
+header{width:min(100% - 48px,1040px);margin:0 auto;min-height:82px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line)}
+.logo{font-size:19px;letter-spacing:4px;font-weight:500;flex:none}
+nav{display:flex;gap:clamp(14px,2.4vw,26px);align-items:center;overflow-x:auto;white-space:nowrap;min-width:0;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{color:var(--muted);font-size:13px;background:none;border:0;padding:4px 0;cursor:pointer;flex:none}
+nav button:hover,nav button.on{color:var(--ink)}
+main{width:min(100% - 48px,760px);margin:clamp(56px,10vh,110px) auto 100px}
+h1.hi{margin:14px 0 8px;font-size:clamp(42px,8vw,72px);line-height:1.12;font-weight:400;letter-spacing:-3px}
+.sub{color:var(--muted);font-size:15px;margin:0}
+.intro{margin-bottom:clamp(44px,8vh,72px)}
+section{padding-top:28px;border-top:1px solid var(--line)}
+h2{margin:0 0 6px;font-size:16px;font-weight:500}
+.note{margin:0 0 18px;color:var(--muted);font-size:13px}
+textarea,.in{display:block;width:100%;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.8;outline:0;margin-bottom:10px}
+textarea{min-height:92px;resize:vertical}
+textarea:focus,.in:focus{border-color:var(--muted)}
+.file{display:block;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;margin:4px 0 26px;color:var(--muted);font-size:12px}
+.item{padding:18px 0;border-top:1px solid var(--line)}
+.item .d{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;letter-spacing:.5px}
+.item .d button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;opacity:.7}
+.item .d button:hover{opacity:1;color:var(--ink)}
+.acts{display:flex;gap:16px}
+.frow{display:flex;gap:10px;align-items:center;margin:0 0 6px}
+.pickw{position:relative;display:inline-block}
+.pickin{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.btn.sm{padding:5px 16px;font-size:12px}
+.mh{margin:28px 0 2px;font-size:12px;letter-spacing:2px;color:var(--muted)}
+#otd{margin-top:28px;padding:16px 18px 10px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
+.otdi{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 0 8px;margin-top:10px;cursor:pointer}
+.otdy{display:block;font-size:11px;color:var(--muted);letter-spacing:.5px}
+.otdt{display:block;font-size:14px;color:var(--ink)}
+.item .ti{margin:6px 0 0;font-size:15px;font-weight:500}
+.item .c{margin:4px 0 0;font-size:14.5px;white-space:pre-wrap;word-break:break-word}
+.item .fr{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.item img{display:block;max-width:100%;border-radius:8px;margin-top:10px}
+.item a{color:var(--ink)}
+.empty{color:var(--muted);font-size:13px;padding:10px 0}
+footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.5px}
+@media (max-width:600px){header{width:calc(100% - 36px);min-height:70px}main{width:calc(100% - 42px);margin-top:48px}h1.hi{letter-spacing:-2px}nav button{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="boot" style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;letter-spacing:4px">LOADING…</div>
+
+<div id="gate" hidden>
+  <div class="box">
+    <div class="eyebrow">PRIVATE SPACE</div>
+    <h1 id="gtitle">Welcome.</h1>
+    <p id="gsub">这是你自己的私人空间。</p>
+    <form id="gform">
+      <input class="pw" type="text" id="gname" placeholder="你的名字" autocomplete="off" hidden>
+      <input class="pw" type="password" id="gpw" placeholder="密码" autocomplete="current-password">
+      <input class="pw" type="password" id="gpw2" placeholder="再输入一次密码" autocomplete="new-password" hidden>
+      <button class="btn" id="gbtn" type="submit">进入</button>
+      <div class="err" id="gerr"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="logo" id="logo">ME.</div>
+    <nav id="nav" aria-label="主导航"></nav>
+  </header>
+  <main>
+    <div class="intro">
+      <div class="eyebrow">WELCOME TO MY SPACE</div>
+      <h1 class="hi" id="hi">Hi.</h1>
+      <p class="sub">一个只属于自己的小小角落。</p>
+      <div id="otd" hidden></div>
+    </div>
+    <div id="secs"></div>
+  </main>
+  <footer>Private · Made with quiet thoughts.</footer>
+</div>
+
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+  function lsGet(k){try{return JSON.parse(localStorage.getItem('ms:'+k))}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem('ms:'+k,JSON.stringify(v));return true}catch(e){return false}}
+  var settings=lsGet('settings'), built=false;
+
+  var SEC=[
+    {k:'thoughts',t:'Thoughts',n:'存放那些突然出现的灵感和思考。',pick:1,f:[{k:'text',p:'此刻在想什么……',a:1}]},
+    {k:'journal',t:'Journal',n:'按天写下的日记。',date:1,f:[{k:'text',p:'今天……',a:1}]},
+    {k:'reading',t:'Reading',n:'读过的书、看过的电影。',f:[{k:'title',p:'书名 / 片名'},{k:'text',p:'一句短评……',a:1}]},
+    {k:'collection',t:'Collection',n:'收藏的句子和链接。',f:[{k:'text',p:'一句话，或一个链接……',a:1},{k:'from',p:'出处（可选）'}]},
+    {k:'photos',t:'Photos',n:'留住的画面。照片会自动压缩后保存。',photo:1,f:[{k:'text',p:'一句说明（可选）'}]}
+  ];
+
+  async function hash(s){
+    try{var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('ms::'+s));
+      return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
+    catch(e){var h=0;for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0}return 'f'+h}
+  }
+  function p2(n){return String(n).padStart(2,'0')}
+  function fmt(ts,withTime){var d=new Date(ts);return d.getFullYear()+'.'+p2(d.getMonth()+1)+'.'+p2(d.getDate())+(withTime?'  '+p2(d.getHours())+':'+p2(d.getMinutes()):'')}
+  function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+
+  // ---------- gate ----------
+  function showGate(first){
+    $('boot').hidden=true;$('app').hidden=true;$('gate').hidden=false;
+    $('gname').hidden=!first;$('gpw2').hidden=!first;
+    $('gtitle').textContent=first?'Welcome.':(settings.name||'Welcome.');
+    $('gsub').textContent=first?'先给你的空间起个名字，设一个只有你知道的密码。':'这是你自己的私人空间。';
+    $('gbtn').textContent=first?'创建':'进入';
+    $('gpw').value='';$('gpw2').value='';$('gerr').textContent='';
+    $('gform').onsubmit=async function(e){
+      e.preventDefault();
+      var pw=$('gpw').value;
+      if(first){
+        var nm=$('gname').value.trim();
+        if(!nm){$('gerr').textContent='请填写名字';return}
+        if(pw.length<4){$('gerr').textContent='密码至少 4 位';return}
+        if(pw!==$('gpw2').value){$('gerr').textContent='两次密码不一致';return}
+        settings={name:nm,pw:await hash(pw)};lsSet('settings',settings);enter();
+      }else if(await hash(pw)===settings.pw){enter()}
+      else{$('gerr').textContent='密码不对';$('gpw').value=''}
+    };
+  }
+  function enter(){
+    try{sessionStorage.setItem('ms:in','1')}catch(e){}
+    $('boot').hidden=true;$('gate').hidden=true;$('app').hidden=false;
+    applyName();
+    if(!built){built=true;buildApp()}
+    renderOtd();
+  }
+  function applyName(){
+    var n=settings.name;
+    $('hi').textContent='Hi, I’m '+n+'.';
+    $('logo').textContent=n.toUpperCase().slice(0,14)+'.';
+    document.title=n;
+  }
+
+  // ---------- app ----------
+  var tabs={};
+  function show(k){
+    Object.keys(tabs).forEach(function(x){var on=x===k;tabs[x].sec.hidden=!on;tabs[x].btn.className=on?'on':''});
+    try{sessionStorage.setItem('ms:tab',k)}catch(e){}
+  }
+  function addTab(k,label,sec){
+    var b=el('button','',label);b.onclick=function(){show(k)};
+    $('nav').appendChild(b);$('secs').appendChild(sec);tabs[k]={btn:b,sec:sec};
+  }
+  function renderOtd(){
+    var box=$('otd'),now=new Date(),y=now.getFullYear(),m=now.getMonth(),dd=now.getDate(),hits=[];
+    SEC.forEach(function(s){(lsGet(s.k)||[]).forEach(function(o){
+      var t=new Date(o.ts);
+      if(t.getMonth()===m&&t.getDate()===dd&&t.getFullYear()<y)hits.push({s:s,o:o,y:t.getFullYear()});
+    })});
+    box.textContent='';
+    if(!hits.length){box.hidden=true;return}
+    hits.sort(function(a,b){return b.y-a.y});
+    box.appendChild(el('div','eyebrow','ON THIS DAY · 那年今天'));
+    hits.slice(0,5).forEach(function(h){
+      var r=el('button','otdi');
+      r.appendChild(el('span','otdy',(y-h.y)+' 年前 · '+h.s.t));
+      var tx=[h.o.title,h.o.text].filter(Boolean).join(' · ')||'［照片］';
+      r.appendChild(el('span','otdt',tx.length>70?tx.slice(0,70)+'…':tx));
+      r.onclick=function(){show(h.s.k)};
+      box.appendChild(r);
+    });
+    box.hidden=false;
+  }
+  function buildApp(){
+    SEC.forEach(function(s){addTab(s.k,s.t,buildSection(s))});
+    addTab('about','About',buildAbout());
+    var lk=el('button','','Lock');lk.onclick=function(){try{sessionStorage.removeItem('ms:in')}catch(e){}showGate(false)};
+    $('nav').appendChild(lk);
+    var t='thoughts';try{t=sessionStorage.getItem('ms:tab')||t}catch(e){}
+    show(tabs[t]?t:'thoughts');
+  }
+
+  function shrink(file){return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){var im=new Image();
+      im.onload=function(){var sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');
+        c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.72))};
+      im.onerror=rej;im.src=r.result};
+    r.onerror=rej;r.readAsDataURL(file)})}
+
+  function itemText(o){return [o.title,o.text,o.from?'— '+o.from:''].filter(Boolean).join('\n')}
+  async function copyIt(o,btn){
+    var t=itemText(o);
+    function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='复制'},1500)}
+    try{await navigator.clipboard.writeText(t);flash('已复制')}
+    catch(e){try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);flash('已复制')}catch(x){flash('复制失败')}}
+  }
+  async function share(o,btn){
+    var txt=[o.title,o.text,o.from?'— '+o.from:''].filter(Boolean).join('\n');
+    function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='分享'},1500)}
+    try{
+      var data={};if(txt)data.text=txt;
+      if(o.img&&navigator.canShare){
+        var bl=await (await fetch(o.img)).blob(),f=new File([bl],'photo.jpg',{type:'image/jpeg'});
+        if(navigator.canShare({files:[f]}))data.files=[f];
+      }
+      if(navigator.share){await navigator.share(data);return}
+      await navigator.clipboard.writeText(txt);flash('已复制');
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+      try{await navigator.clipboard.writeText(txt);flash('已复制')}catch(x){flash('无法分享')}
+    }
+  }
+
+  function buildSection(s){
+    var sec=el('section');sec.id='s_'+s.k;
+    sec.appendChild(el('h2','',s.t));sec.appendChild(el('p','note',s.n));
+    var ins={},di,fi;
+    if(s.date){di=el('input','in');di.type='date';di.value=today();sec.appendChild(di)}
+    s.f.forEach(function(f){var i=f.a?el('textarea'):el('input','in');if(!f.a)i.type='text';i.placeholder=f.p;ins[f.k]=i;sec.appendChild(i)});
+    if(s.photo){fi=el('input','file');fi.type='file';fi.accept='image/*';sec.appendChild(fi)}
+    var row=el('div','row'),st=el('span','','仅保存在此浏览器'),sv=el('button','btn','记下来');
+    row.appendChild(st);row.appendChild(sv);sec.appendChild(row);
+    var filt=null,resetFilter=null;
+    if(s.pick){
+      var fr=el('div','frow'),wrap=el('span','pickw'),pb=el('button','btn sm','按日期查看'),pi=el('input','pickin'),clr=el('button','btn sm','显示全部');
+      pi.type='date';clr.hidden=true;
+      wrap.appendChild(pb);wrap.appendChild(pi);fr.appendChild(wrap);fr.appendChild(clr);sec.appendChild(fr);
+      pi.onchange=function(){if(pi.value){filt=pi.value;pb.textContent=pi.value.replace(/-/g,'.');clr.hidden=false;render()}};
+      resetFilter=function(){filt=null;pi.value='';pb.textContent='按日期查看';clr.hidden=true;render()};
+      clr.onclick=resetFilter;
+    }
+    var list=el('div');sec.appendChild(list);
+
+    function render(){
+      var arr=(lsGet(s.k)||[]).sort(function(x,y){return y.ts-x.ts});list.textContent='';
+      if(filt){var p=filt.split('-');arr=arr.filter(function(o){var t=new Date(o.ts);return t.getFullYear()===+p[0]&&t.getMonth()+1===+p[1]&&t.getDate()===+p[2]})}
+      if(!arr.length){list.appendChild(el('div','empty',filt?'这一天没有记录。':'还没有记录。'));return}
+      var lastM='';
+      arr.forEach(function(o){
+        var dt=new Date(o.ts),mk=dt.getFullYear()+' 年 '+(dt.getMonth()+1)+' 月';
+        if(mk!==lastM){lastM=mk;list.appendChild(el('div','mh',mk))}
+        var it=el('div','item'),d=el('div','d');
+        d.appendChild(el('span','',fmt(o.ts,!s.date)));
+        var b=el('button','','删除');
+        b.onclick=function(){
+          if(b.dataset.s==='1'){lsSet(s.k,(lsGet(s.k)||[]).filter(function(x){return x.id!==o.id}));render()}
+          else{b.dataset.s='1';b.textContent='确认删除？';setTimeout(function(){b.dataset.s='';b.textContent='删除'},2500)}
+        };
+        var acts=el('span','acts'),sh=el('button','','分享');sh.onclick=function(){share(o,sh)};if(itemText(o)){var cp=el('button','','复制');cp.onclick=function(){copyIt(o,cp)};acts.appendChild(cp)}acts.appendChild(sh);acts.appendChild(b);d.appendChild(acts);it.appendChild(d);
+        if(o.title)it.appendChild(el('p','ti',o.title));
+        if(o.text){var c=el('p','c');
+          if(/^https?:\/\/\S+$/.test(o.text)){var a=el('a','',o.text);a.href=o.text;a.target='_blank';a.rel='noopener';c.appendChild(a)}else c.textContent=o.text;
+          it.appendChild(c)}
+        if(o.from)it.appendChild(el('p','fr','— '+o.from));
+        if(o.img){var im=el('img');im.src=o.img;im.alt='';it.appendChild(im)}
+        list.appendChild(it);
+      });
+    }
+    sv.onclick=async function(){
+      var o={id:'i'+Date.now(),ts:Date.now()},any=false;
+      if(di&&di.value)o.ts=new Date(di.value+'T12:00:00').getTime();
+      s.f.forEach(function(f){var v=ins[f.k].value.trim();if(v){o[f.k]=v;any=true}});
+      if(s.photo){
+        if(!fi.files[0]){st.textContent='请先选一张照片';return}
+        try{o.img=await shrink(fi.files[0]);any=true}catch(e){st.textContent='图片读取失败';return}
+      }
+      if(!any)return;
+      var arr=lsGet(s.k)||[];arr.unshift(o);arr.sort(function(a,b){return b.ts-a.ts});
+      if(!lsSet(s.k,arr)){st.textContent='保存失败，可能是浏览器空间已满';return}
+      Object.keys(ins).forEach(function(k){ins[k].value=''});if(fi)fi.value='';
+      st.textContent='仅保存在此浏览器';if(resetFilter)resetFilter();else render();
+    };
+    render();return sec;
+  }
+
+  function buildAbout(){
+    var sec=el('section');
+    sec.appendChild(el('h2','','About me'));sec.appendChild(el('p','note','写给自己的简介，也可以在这里改名字和密码。'));
+    var ab=el('textarea');ab.placeholder='我在这里生活、观察、思考……';ab.value=settings.about||'';
+    var nm=el('input','in');nm.type='text';nm.placeholder='名字';nm.value=settings.name;
+    var pw=el('input','in');pw.type='password';pw.placeholder='新密码（不改请留空）';pw.autocomplete='new-password';
+    var row=el('div','row'),st=el('span'),sv=el('button','btn','保存');
+    row.appendChild(st);row.appendChild(sv);
+    [ab,nm,pw,row].forEach(function(x){sec.appendChild(x)});
+    sv.onclick=async function(){
+      var n=nm.value.trim();if(!n){st.textContent='名字不能为空';return}
+      if(pw.value&&pw.value.length<4){st.textContent='新密码至少 4 位';return}
+      settings.name=n;settings.about=ab.value.trim();
+      if(pw.value)settings.pw=await hash(pw.value);
+      lsSet('settings',settings);pw.value='';applyName();st.textContent='已保存';
+    };
+    return sec;
+  }
+
+  // ---------- boot ----------
+  try{
+    if(!settings||!settings.pw){showGate(true)}
+    else{var open=false;try{open=sessionStorage.getItem('ms:in')==='1'}catch(e){}
+      if(open)enter();else showGate(false)}
+  }catch(e){$('boot').textContent='出错了，请刷新'}
+})();
+</script>
+</body>
+</html>
