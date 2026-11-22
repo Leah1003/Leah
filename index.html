@@ -43,13 +43,18 @@ h2{margin:0 0 6px;font-size:16px;font-weight:500}
 textarea,.in{display:block;width:100%;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.8;outline:0;margin-bottom:10px}
 textarea{min-height:92px;resize:vertical}
 textarea:focus,.in:focus{border-color:var(--muted)}
-.file{display:block;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.file{display:block;max-width:100%;margin-bottom:10px;font-size:13px;color:var(--muted)}
+html,body{overflow-x:hidden}
 .row{display:flex;justify-content:space-between;align-items:center;margin:4px 0 26px;color:var(--muted);font-size:12px}
 .item{padding:18px 0;border-top:1px solid var(--line)}
 .item .d{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;letter-spacing:.5px}
 .item .d button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;opacity:.7}
 .item .d button:hover{opacity:1;color:var(--ink)}
 .acts{display:flex;gap:16px}
+.frow{display:flex;gap:10px;align-items:center;margin:0 0 6px}
+.pickw{position:relative;display:inline-block}
+.pickin{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.btn.sm{padding:5px 16px;font-size:12px}
 .mh{margin:28px 0 2px;font-size:12px;letter-spacing:2px;color:var(--muted)}
 #otd{margin-top:28px;padding:16px 18px 10px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
 .otdi{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 0 8px;margin-top:10px;cursor:pointer}
@@ -106,10 +111,10 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
   function lsGet(k){try{return JSON.parse(localStorage.getItem('ms:'+k))}catch(e){return null}}
   function lsSet(k,v){try{localStorage.setItem('ms:'+k,JSON.stringify(v));return true}catch(e){return false}}
-  var settings=lsGet('settings'), built=false;
+  var settings=lsGet('settings'), built=false, idb=null;
 
   var SEC=[
-    {k:'thoughts',t:'Thoughts',n:'存放那些突然出现的灵感和思考。',f:[{k:'text',p:'此刻在想什么……',a:1}]},
+    {k:'thoughts',t:'Thoughts',n:'存放那些突然出现的灵感和思考。',pick:1,f:[{k:'text',p:'此刻在想什么……',a:1}]},
     {k:'journal',t:'Journal',n:'按天写下的日记。',date:1,f:[{k:'text',p:'今天……',a:1}]},
     {k:'reading',t:'Reading',n:'读过的书、看过的电影。',f:[{k:'title',p:'书名 / 片名'},{k:'text',p:'一句短评……',a:1}]},
     {k:'collection',t:'Collection',n:'收藏的句子和链接。',f:[{k:'text',p:'一句话，或一个链接……',a:1},{k:'from',p:'出处（可选）'}]},
@@ -124,6 +129,39 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   function p2(n){return String(n).padStart(2,'0')}
   function fmt(ts,withTime){var d=new Date(ts);return d.getFullYear()+'.'+p2(d.getMonth()+1)+'.'+p2(d.getDate())+(withTime?'  '+p2(d.getHours())+':'+p2(d.getMinutes()):'')}
   function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+
+  // ---------- photo storage (IndexedDB, much larger than localStorage) ----------
+  function openDb(){
+    var p=new Promise(function(res){
+      try{
+        var rq=indexedDB.open('ms-photos',1);
+        rq.onupgradeneeded=function(){rq.result.createObjectStore('img')};
+        rq.onsuccess=function(){res(rq.result)};
+        rq.onerror=function(){res(null)};
+        rq.onblocked=function(){res(null)};
+      }catch(e){res(null)}
+    });
+    return Promise.race([p,new Promise(function(r){setTimeout(function(){r(null)},3000)})]);
+  }
+  function idbPut(id,val){return new Promise(function(res,rej){
+    var tx=idb.transaction('img','readwrite');tx.objectStore('img').put(val,id);
+    tx.oncomplete=function(){res()};tx.onerror=tx.onabort=function(){rej(tx.error)};
+  })}
+  function idbGet(id){return new Promise(function(res){
+    try{var rq=idb.transaction('img','readonly').objectStore('img').get(id);
+      rq.onsuccess=function(){res(rq.result||null)};rq.onerror=function(){res(null)}}catch(e){res(null)}
+  })}
+  function idbDel(id){try{idb.transaction('img','readwrite').objectStore('img').delete(id)}catch(e){}}
+  async function migrate(){
+    var arr=lsGet('photos');if(!arr)return;var changed=false;
+    for(var i=0;i<arr.length;i++){
+      var o=arr[i];
+      if(o.img){
+        try{await idbPut('p'+o.id,o.img);o.imgId='p'+o.id;delete o.img;changed=true}catch(e){}
+      }
+    }
+    if(changed)lsSet('photos',arr);
+  }
 
   // ---------- gate ----------
   function showGate(first){
@@ -202,9 +240,9 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   function shrink(file){return new Promise(function(res,rej){
     var r=new FileReader();
     r.onload=function(){var im=new Image();
-      im.onload=function(){var sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');
+      im.onload=function(){var sc=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');
         c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
-        c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.72))};
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};
       im.onerror=rej;im.src=r.result};
     r.onerror=rej;r.readAsDataURL(file)})}
 
@@ -220,8 +258,9 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     function flash(m){btn.textContent=m;setTimeout(function(){btn.textContent='分享'},1500)}
     try{
       var data={};if(txt)data.text=txt;
-      if(o.img&&navigator.canShare){
-        var bl=await (await fetch(o.img)).blob(),f=new File([bl],'photo.jpg',{type:'image/jpeg'});
+      var src=o.img||((o.imgId&&idb)?await idbGet(o.imgId):null);
+      if(src&&navigator.canShare){
+        var bl=await (await fetch(src)).blob(),f=new File([bl],'photo.jpg',{type:'image/jpeg'});
         if(navigator.canShare({files:[f]}))data.files=[f];
       }
       if(navigator.share){await navigator.share(data);return}
@@ -241,11 +280,21 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
     if(s.photo){fi=el('input','file');fi.type='file';fi.accept='image/*';sec.appendChild(fi)}
     var row=el('div','row'),st=el('span','','仅保存在此浏览器'),sv=el('button','btn','记下来');
     row.appendChild(st);row.appendChild(sv);sec.appendChild(row);
+    var filt=null,resetFilter=null;
+    if(s.pick){
+      var fr=el('div','frow'),wrap=el('span','pickw'),pb=el('button','btn sm','按日期查看'),pi=el('input','pickin'),clr=el('button','btn sm','显示全部');
+      pi.type='date';clr.hidden=true;
+      wrap.appendChild(pb);wrap.appendChild(pi);fr.appendChild(wrap);fr.appendChild(clr);sec.appendChild(fr);
+      pi.onchange=function(){if(pi.value){filt=pi.value;pb.textContent=pi.value.replace(/-/g,'.');clr.hidden=false;render()}};
+      resetFilter=function(){filt=null;pi.value='';pb.textContent='按日期查看';clr.hidden=true;render()};
+      clr.onclick=resetFilter;
+    }
     var list=el('div');sec.appendChild(list);
 
     function render(){
       var arr=(lsGet(s.k)||[]).sort(function(x,y){return y.ts-x.ts});list.textContent='';
-      if(!arr.length){list.appendChild(el('div','empty','还没有记录。'));return}
+      if(filt){var p=filt.split('-');arr=arr.filter(function(o){var t=new Date(o.ts);return t.getFullYear()===+p[0]&&t.getMonth()+1===+p[1]&&t.getDate()===+p[2]})}
+      if(!arr.length){list.appendChild(el('div','empty',filt?'这一天没有记录。':'还没有记录。'));return}
       var lastM='';
       arr.forEach(function(o){
         var dt=new Date(o.ts),mk=dt.getFullYear()+' 年 '+(dt.getMonth()+1)+' 月';
@@ -254,7 +303,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
         d.appendChild(el('span','',fmt(o.ts,!s.date)));
         var b=el('button','','删除');
         b.onclick=function(){
-          if(b.dataset.s==='1'){lsSet(s.k,(lsGet(s.k)||[]).filter(function(x){return x.id!==o.id}));render()}
+          if(b.dataset.s==='1'){lsSet(s.k,(lsGet(s.k)||[]).filter(function(x){return x.id!==o.id}));if(o.imgId&&idb)idbDel(o.imgId);render()}
           else{b.dataset.s='1';b.textContent='确认删除？';setTimeout(function(){b.dataset.s='';b.textContent='删除'},2500)}
         };
         var acts=el('span','acts'),sh=el('button','','分享');sh.onclick=function(){share(o,sh)};if(itemText(o)){var cp=el('button','','复制');cp.onclick=function(){copyIt(o,cp)};acts.appendChild(cp)}acts.appendChild(sh);acts.appendChild(b);d.appendChild(acts);it.appendChild(d);
@@ -263,7 +312,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
           if(/^https?:\/\/\S+$/.test(o.text)){var a=el('a','',o.text);a.href=o.text;a.target='_blank';a.rel='noopener';c.appendChild(a)}else c.textContent=o.text;
           it.appendChild(c)}
         if(o.from)it.appendChild(el('p','fr','— '+o.from));
-        if(o.img){var im=el('img');im.src=o.img;im.alt='';it.appendChild(im)}
+        if(o.img||o.imgId){var im=el('img');im.alt='';if(o.img)im.src=o.img;else if(idb)idbGet(o.imgId).then(function(v){if(v)im.src=v});it.appendChild(im)}
         list.appendChild(it);
       });
     }
@@ -273,13 +322,15 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
       s.f.forEach(function(f){var v=ins[f.k].value.trim();if(v){o[f.k]=v;any=true}});
       if(s.photo){
         if(!fi.files[0]){st.textContent='请先选一张照片';return}
-        try{o.img=await shrink(fi.files[0]);any=true}catch(e){st.textContent='图片读取失败';return}
+        var du;try{du=await shrink(fi.files[0])}catch(e){st.textContent='图片读取失败';return}
+        if(idb){o.imgId='p'+o.id;try{await idbPut(o.imgId,du)}catch(e){st.textContent='保存失败，请重试';return}}else o.img=du;
+        any=true;
       }
       if(!any)return;
       var arr=lsGet(s.k)||[];arr.unshift(o);arr.sort(function(a,b){return b.ts-a.ts});
-      if(!lsSet(s.k,arr)){st.textContent='保存失败，可能是浏览器空间已满';return}
+      if(!lsSet(s.k,arr)){if(o.imgId&&idb)idbDel(o.imgId);st.textContent='保存失败，可能是浏览器空间已满';return}
       Object.keys(ins).forEach(function(k){ins[k].value=''});if(fi)fi.value='';
-      st.textContent='仅保存在此浏览器';render();
+      st.textContent='仅保存在此浏览器';if(resetFilter)resetFilter();else render();
     };
     render();return sec;
   }
@@ -304,11 +355,14 @@ footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;colo
   }
 
   // ---------- boot ----------
+  (async function(){
+  try{idb=await openDb();if(idb)await migrate()}catch(e){}
   try{
     if(!settings||!settings.pw){showGate(true)}
     else{var open=false;try{open=sessionStorage.getItem('ms:in')==='1'}catch(e){}
       if(open)enter();else showGate(false)}
   }catch(e){$('boot').textContent='出错了，请刷新'}
+  })();
 })();
 </script>
 </body>
